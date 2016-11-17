@@ -2,12 +2,11 @@
 import serial
 import time
 import rospy
-from TeensyEyes.msg import Eyes
+from teensy_eyes.msg import Eyes
 import os
 class Bridge():
     def __init__(self):
         self.connected = False
-        self.feedback = Set()
         self.initConnection()
         self.cmd = Eyes()
         self.cmd.iris=515
