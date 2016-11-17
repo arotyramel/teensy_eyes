@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package>
-  <name>ROS_TeensyEyes</name>
+  <name>teensy_eyes</name>
   <version>0.0.0</version>
   <description>The ROS_TeensyEyes package</description>
 
