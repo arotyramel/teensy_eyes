@@ -17,7 +17,7 @@ class Bridge():
         
     def openSerialPort(self,i):
         try:
-            self.ser = serial.Serial('/dev/ttyUSB'+str(i), 115200)
+            self.ser = serial.Serial('/dev/ttyACM'+str(i), 115200)
             return True
         except Exception as  exc:
             print(exc)
@@ -33,17 +33,23 @@ class Bridge():
     def callback(self,msg):
         if msg.iris != self.cmd.iris:
             self.cmd.iris = msg.iris
-            self.ser.write(self.cmd.iris+"\r")
+            self.ser.write("iris"+str(self.cmd.iris)+"\r")
+            self.ser.flush()
         if msg.x != self.cmd.x:
             self.cmd.x = msg.x
-            self.ser.write(self.cmd.x+"\r")
+            self.ser.write("joyx"+str(self.cmd.x)+"\r")
+            self.ser.flush()
         if msg.y != self.cmd.y:
             self.cmd.y = msg.y
-            self.ser.write(self.cmd.y+"\r")    
-        if not msg.auto_eyes is self.cmd.eyes:
+            self.ser.write("joyy"+str(self.cmd.y)+"\r")
+            self.ser.flush()    
+        if not msg.auto_eyes is self.cmd.auto_eyes:
             self.cmd.auto_eyes = msg.auto_eyes
-            self.ser.write(int(self.cmd.auto_eyes)+"\r")
-        self.ser.flush()
+            if self.cmd.auto_eyes:
+                self.ser.write("auto_eyes\r\n")
+            else:
+                self.ser.write("joy_eyes\r\n")
+            self.ser.flush()
             
 
 if __name__ == "__main__":
