@@ -1,6 +1,5 @@
 #!/usr/bin/python
 import serial
-import time
 import rospy
 from teensy_eyes.msg import Eyes
 import os
@@ -31,6 +30,7 @@ class Bridge():
                 break
         
     def callback(self,msg):
+#         print "got eye callback",msg
         if msg.iris != self.cmd.iris:
             self.cmd.iris = msg.iris
             self.ser.write("iris"+str(self.cmd.iris)+"\r")
@@ -42,6 +42,24 @@ class Bridge():
         if msg.y != self.cmd.y:
             self.cmd.y = msg.y
             self.ser.write("joyy"+str(self.cmd.y)+"\r")
+            self.ser.flush()
+        if msg.blink:
+            self.cmd.blink =msg.blink
+            self.ser.write("blink\r")
+            self.ser.flush()
+        if msg.blinkL:
+            self.cmd.blinkL =msg.blinkL
+            print "blinkL",self.cmd.blinkL
+            self.ser.write("blinkL\r")
+            self.ser.flush()      
+        if msg.blinkR:
+            self.cmd.blinkR =msg.blinkR
+            print "blinkR",self.cmd.blinkR, "blinkL",self.cmd.blinkL
+            self.ser.write("blinkR\r")
+            self.ser.flush()      
+        if msg.auto_blink:
+            self.cmd.auto_blink =msg.auto_blink
+            self.ser.write("auto_blink\r")
             self.ser.flush()    
         if not msg.auto_eyes is self.cmd.auto_eyes:
             self.cmd.auto_eyes = msg.auto_eyes
@@ -50,6 +68,9 @@ class Bridge():
             else:
                 self.ser.write("joy_eyes\r\n")
             self.ser.flush()
+        self.cmd.blink = False
+        self.cmd.blinkR = False
+        self.cmd.blinkL = False
             
 
 if __name__ == "__main__":
