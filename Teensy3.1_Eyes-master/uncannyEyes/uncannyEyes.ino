@@ -20,7 +20,10 @@
 // joyy0\r to joyy1023\r
 // auto_eyes
 // joy_eyes
-
+// auto_blink
+// blinkL
+// blinkR
+// force_blink
 #include <SPI.h>
 #include <Adafruit_GFX.h>      // Core graphics lib for Adafruit displays
 // Enable ONE of these #includes -- HUGE graphics tables for various eyes:
@@ -94,7 +97,11 @@ String serial_in;
 uint16_t a0_value;
 uint16_t a1_value;
 uint16_t a2_value;
-bool auto_eyes = false;
+bool auto_eyes = true;
+bool auto_blink = true;
+bool blinkR = false;
+bool blinkL = false;
+bool force_blink = false;
 // INITIALIZATION -- runs once at startup ----------------------------------
 
 void setup(void) {
@@ -102,7 +109,7 @@ void setup(void) {
   serial_in="";
   a0_value = 512;
   a1_value = 512;
-  a2_value = 512;
+  a2_value = 256;
   uint8_t e;
 
   Serial.begin(115200);
@@ -326,7 +333,8 @@ else{
 
   // Blinking
 
-#ifdef AUTOBLINK
+//#ifdef AUTOBLINK
+if (auto_blink){
   // Similar to the autonomous eye movement above -- blink start times
   // and durations are random (within ranges).
   if((t - timeOfLastBlink) >= timeToNextBlink) { // Start new blink?
@@ -342,16 +350,21 @@ else{
     }
     timeToNextBlink = blinkDuration * 3 + random(4000000);
   }
-#endif
+}
+#//endif
 
   if(eye[eyeIndex].blink.state) { // Eye currently blinking?
     // Check if current blink state time has elapsed
     if((t - eye[eyeIndex].blink.startTime) >= eye[eyeIndex].blink.duration) {
       // Yes -- increment blink state, unless...
       if((eye[eyeIndex].blink.state == ENBLINK) &&  // Enblinking and...
-        ((digitalRead(BLINK_PIN) == LOW) ||         // blink or wink held...
+        //((digitalRead(BLINK_PIN) == LOW) ||         // blink or wink held...
+        ((force_blink) ||         // blink or wink held...
           digitalRead(eye[eyeIndex].blink.pin) == LOW)) {
         // Don't advance state yet -- eye is held closed instead
+        force_blink = false;
+        blinkR = false;
+        blinkL = false;
       } else { // No buttons, or other state...
         if(++eye[eyeIndex].blink.state > DEBLINK) { // Deblinking finished?
           eye[eyeIndex].blink.state = NOBLINK;      // No longer blinking
@@ -362,7 +375,8 @@ else{
       }
     }
   } else { // Not currently blinking...check buttons!
-    if(digitalRead(BLINK_PIN) == LOW) {
+    //if(digitalRead(BLINK_PIN) == LOW) {
+    if(force_blink) {
       // Manually-initiated blinks have random durations like auto-blink
       uint32_t blinkDuration = random(36000, 72000);
       for(uint8_t e=0; e<NUM_EYES; e++) {
@@ -372,7 +386,14 @@ else{
           eye[e].blink.duration  = blinkDuration;
         }
       }
-    } else if(digitalRead(eye[eyeIndex].blink.pin) == LOW) { // Wink!
+    //} else if(digitalRead(eye[eyeIndex].blink.pin) == LOW) { // Wink!
+    } else if(blinkR) { // Wink!
+      //blinkR = false;
+      eye[eyeIndex].blink.state     = ENBLINK;
+      eye[eyeIndex].blink.startTime = t;
+      eye[eyeIndex].blink.duration  = random(45000, 90000);
+    } else if(blinkL) { // Wink!
+      //blinkL = false;
       eye[eyeIndex].blink.state     = ENBLINK;
       eye[eyeIndex].blink.startTime = t;
       eye[eyeIndex].blink.duration  = random(45000, 90000);
@@ -483,24 +504,35 @@ void loop() {
     Serial.println(serial_in);
     Serial.flush();
     if(serial_in.startsWith("iris")){
-      Serial.println("iris cmd found");
       a2_value = serial_in.substring(4).toInt();
     }
     else if(serial_in.startsWith("joyx")){
-      Serial.println("joyx cmd found");
       a0_value = serial_in.substring(4).toInt();
     }
     else if(serial_in.startsWith("joyy")){
-      Serial.println("joyy cmd found");
       a1_value = serial_in.substring(4).toInt();
     }
     else if(serial_in.startsWith("auto_eyes")){
-      Serial.println("auto_eyes");
       auto_eyes = true;
     }
     else if(serial_in.startsWith("joy_eyes")){
-      Serial.println("joy_eyes");
       auto_eyes = false;
+    }
+    else if(serial_in.startsWith("auto_blink")){
+      auto_blink=true;
+      force_blink=false;
+    }
+    else if(serial_in.startsWith("blinkR")){
+      blinkR = true;
+      auto_blink=false;
+    }
+    else if(serial_in.startsWith("blinkL")){
+      blinkL = true;
+      auto_blink=false;
+    }
+    else if(serial_in.startsWith("blink") && !blinkL && !blinkR){
+      force_blink=true;
+      auto_blink=false;
     }
     else{
       Serial.println("no cmd found");
@@ -508,6 +540,7 @@ void loop() {
     serial_in = "";
     serial_in_complete = false;
   }
+
   
 #ifdef IRIS_PIN && (IRIS_PIN >= 0) // Interactive iris
   
@@ -531,6 +564,9 @@ void loop() {
   oldIris = newIris;
 
 #endif // IRIS_PIN
+blinkR = false;
+blinkL = false;
+force_blink=false;
 }
 
 
