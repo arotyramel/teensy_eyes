@@ -11,7 +11,6 @@ class Bridge():
         self.cmd.iris=515
         self.cmd.x=512
         self.cmd.y=512
-        self.cmd.auto_eyes = True
         self.sub = rospy.Subscriber("eyes", Eyes, self.callback, queue_size=1)
         
     def openSerialPort(self,i):
@@ -31,43 +30,35 @@ class Bridge():
         
     def callback(self,msg):
 #         print "got eye callback",msg
+        if msg.auto_eyes:
+            self.ser.write("auto_eyes\r")
+        else:
+            self.ser.write("joy_eyes\r")
         if msg.iris != self.cmd.iris:
             self.cmd.iris = msg.iris
             self.ser.write("iris"+str(self.cmd.iris)+"\r")
-            self.ser.flush()
         if msg.x != self.cmd.x:
             self.cmd.x = msg.x
             self.ser.write("joyx"+str(self.cmd.x)+"\r")
-            self.ser.flush()
         if msg.y != self.cmd.y:
             self.cmd.y = msg.y
             self.ser.write("joyy"+str(self.cmd.y)+"\r")
-            self.ser.flush()
         if msg.blink:
             self.cmd.blink =msg.blink
             self.ser.write("blink\r")
-            self.ser.flush()
         if msg.blinkL:
             self.cmd.blinkL =msg.blinkL
-            print "blinkL",self.cmd.blinkL
+#             print "blinkL",self.cmd.blinkL
             self.ser.write("blinkL\r")
-            self.ser.flush()      
         if msg.blinkR:
             self.cmd.blinkR =msg.blinkR
-            print "blinkR",self.cmd.blinkR, "blinkL",self.cmd.blinkL
-            self.ser.write("blinkR\r")
-            self.ser.flush()      
+#             print "blinkR",self.cmd.blinkR, "blinkL",self.cmd.blinkL
+            self.ser.write("blinkR\r")      
         if msg.auto_blink:
             self.cmd.auto_blink =msg.auto_blink
-            self.ser.write("auto_blink\r")
-            self.ser.flush()    
-        if not msg.auto_eyes is self.cmd.auto_eyes:
-            self.cmd.auto_eyes = msg.auto_eyes
-            if self.cmd.auto_eyes:
-                self.ser.write("auto_eyes\r\n")
-            else:
-                self.ser.write("joy_eyes\r\n")
-            self.ser.flush()
+            self.ser.write("auto_blink\r")    
+        print self.cmd
+        self.ser.flush()
         self.cmd.blink = False
         self.cmd.blinkR = False
         self.cmd.blinkL = False
