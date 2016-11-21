@@ -23,9 +23,11 @@ Go into the project workspace and open the file
 with your arduino IDE and compile and upload it to your Teensy.
 
 # Execution
+Open 3 terminals
 ```
 roscore
 rosrun teensy_eyes bridge.py
+rosrun teensy_eyes example.py
 ```
 You should have a new topic called /eyes now.
 
