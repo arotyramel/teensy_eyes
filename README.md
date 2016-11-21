@@ -1,3 +1,5 @@
+[![Teensy-LCD-Eyes](images/eyes.jpg)](https://www.youtube.com/watch?v=E_-tKKZlwS4)
+
 # teensy_eyes
 Modification of the [Teensy3.1 Eyes with the LCD screens from Adafruit by Phil Burgess](https://learn.adafruit.com/animated-electronic-eyes-using-teensy-3-1/overview) to control the eyes through a serial bridge with ROS
 
