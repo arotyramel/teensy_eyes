@@ -77,7 +77,7 @@ typedef Adafruit_SSD1351 displayType; // Using OLED display(s)
 typedef struct {
   int8_t   pin;       // Optional button here for indiv. wink
   uint8_t  state;     // NOBLINK/ENBLINK/DEBLINK
-  int32_t  duration;  // Duration of blink state (micros)
+  uint32_t  duration;  // Duration of blink state (micros)
   uint32_t startTime; // Time (micros) of last state change
 } eyeBlink;
 
@@ -99,8 +99,7 @@ uint16_t a1_value;
 uint16_t a2_value;
 bool auto_eyes = true;
 bool auto_blink = true;
-bool blinkR = false;
-bool blinkL = false;
+bool blink_eye[2];
 bool force_blink = false;
 // INITIALIZATION -- runs once at startup ----------------------------------
 
@@ -110,6 +109,8 @@ void setup(void) {
   a0_value = 512;
   a1_value = 512;
   a2_value = 256;
+  blink_eye[0] = false;
+  blink_eye[1] = false;
   uint8_t e;
 
   Serial.begin(115200);
@@ -253,7 +254,7 @@ uint32_t timeOfLastBlink = 0L, timeToNextBlink = 0L;
 
 void frame( // Process motion for a single frame of left or right eye
   uint16_t        iScale) {     // Iris scale (0-1023) passed in
-  static uint32_t frames   = 0; // Used in frame rate calculation
+  //static uint32_t frames   = 0; // Used in frame rate calculation
   static uint8_t  eyeIndex = 0; // eye[] array counter
   int16_t         eyeX, eyeY;
   uint32_t        t = micros(); // Time at start of function
@@ -263,9 +264,6 @@ void frame( // Process motion for a single frame of left or right eye
   if(++eyeIndex >= NUM_EYES) eyeIndex = 0; // Cycle through eyes, 1 per call
 
   // X/Y movement
-
-//#if defined(JOYSTICK_X_PIN) && (JOYSTICK_X_PIN >= 0) && \
-//    defined(JOYSTICK_Y_PIN) && (JOYSTICK_Y_PIN >= 0) 
 if (!auto_eyes){
   // Read X/Y from joystick, constrain to circle
   int16_t dx, dy;
@@ -358,13 +356,9 @@ if (auto_blink){
     if((t - eye[eyeIndex].blink.startTime) >= eye[eyeIndex].blink.duration) {
       // Yes -- increment blink state, unless...
       if((eye[eyeIndex].blink.state == ENBLINK) &&  // Enblinking and...
-        //((digitalRead(BLINK_PIN) == LOW) ||         // blink or wink held...
         ((force_blink) ||         // blink or wink held...
-          digitalRead(eye[eyeIndex].blink.pin) == LOW)) {
+         blink_eye[eyeIndex])) {
         // Don't advance state yet -- eye is held closed instead
-        force_blink = false;
-        blinkR = false;
-        blinkL = false;
       } else { // No buttons, or other state...
         if(++eye[eyeIndex].blink.state > DEBLINK) { // Deblinking finished?
           eye[eyeIndex].blink.state = NOBLINK;      // No longer blinking
@@ -387,13 +381,7 @@ if (auto_blink){
         }
       }
     //} else if(digitalRead(eye[eyeIndex].blink.pin) == LOW) { // Wink!
-    } else if(blinkR) { // Wink!
-      //blinkR = false;
-      eye[eyeIndex].blink.state     = ENBLINK;
-      eye[eyeIndex].blink.startTime = t;
-      eye[eyeIndex].blink.duration  = random(45000, 90000);
-    } else if(blinkL) { // Wink!
-      //blinkL = false;
+    } else if(blink_eye[eyeIndex]) { // Wink!
       eye[eyeIndex].blink.state     = ENBLINK;
       eye[eyeIndex].blink.startTime = t;
       eye[eyeIndex].blink.duration  = random(45000, 90000);
@@ -456,9 +444,6 @@ if (auto_blink){
   // Pass all the derived values to the eye-rendering function:
   drawEye(eyeIndex, iScale, eyeX, eyeY, n, lThreshold);
 }
-
-
-// AUTONOMOUS IRIS SCALING (if no photocell or dial) -----------------------
 
 #if !defined(IRIS_PIN) || (IRIS_PIN < 0)
 
@@ -523,14 +508,14 @@ void loop() {
       force_blink=false;
     }
     else if(serial_in.startsWith("blinkR")){
-      blinkR = true;
+      blink_eye[1] = true;
       auto_blink=false;
     }
     else if(serial_in.startsWith("blinkL")){
-      blinkL = true;
+      blink_eye[0] = true;
       auto_blink=false;
     }
-    else if(serial_in.startsWith("blink") && !blinkL && !blinkR){
+    else if(serial_in.startsWith("blink") && !blink_eye[0] && !blink_eye[1]){
       force_blink=true;
       auto_blink=false;
     }
@@ -541,32 +526,13 @@ void loop() {
     serial_in_complete = false;
   }
 
-  
-#ifdef IRIS_PIN && (IRIS_PIN >= 0) // Interactive iris
-  
-  //uint16_t v = analogRead(IRIS_PIN);       // Raw dial/photocell reading
-#ifdef IRIS_PIN_FLIP
-  a2_value = 1023 - a2_value;
-#endif
   uint16_t a2_value_mapped = map(a2_value, 0, 1023, IRIS_MIN, IRIS_MAX); // Scale to iris range
-#ifdef IRIS_SMOOTH // Filter input (gradual motion)
-  static uint16_t irisValue = (IRIS_MIN + IRIS_MAX) / 2;
-  irisValue = ((irisValue * 15) + a2_value_mapped) / 16;
-  frame(irisValue);
-#else // Unfiltered (immediate motion)
+
   frame(a2_value_mapped);
-#endif // IRIS_SMOOTH
 
-#else  // Autonomous iris scaling -- invoke recursive function
-
-  newIris = random(IRIS_MIN, IRIS_MAX);
-  split(oldIris, newIris, micros(), 10000000L, IRIS_MAX - IRIS_MIN);
-  oldIris = newIris;
-
-#endif // IRIS_PIN
-blinkR = false;
-blinkL = false;
-force_blink=false;
+  blink_eye[0] = false;
+  blink_eye[1] = false;
+  force_blink=false;
 }
 
 
