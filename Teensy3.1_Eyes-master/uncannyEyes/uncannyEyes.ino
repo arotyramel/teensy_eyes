@@ -359,6 +359,9 @@ if (auto_blink){
         ((force_blink) ||         // blink or wink held...
          blink_eye[eyeIndex])) {
         // Don't advance state yet -- eye is held closed instead
+        force_blink=false;
+        blink_eye[0]=false;
+        blink_eye[1]=false;
       } else { // No buttons, or other state...
         if(++eye[eyeIndex].blink.state > DEBLINK) { // Deblinking finished?
           eye[eyeIndex].blink.state = NOBLINK;      // No longer blinking
@@ -369,7 +372,6 @@ if (auto_blink){
       }
     }
   } else { // Not currently blinking...check buttons!
-    //if(digitalRead(BLINK_PIN) == LOW) {
     if(force_blink) {
       // Manually-initiated blinks have random durations like auto-blink
       uint32_t blinkDuration = random(36000, 72000);
@@ -380,7 +382,6 @@ if (auto_blink){
           eye[e].blink.duration  = blinkDuration;
         }
       }
-    //} else if(digitalRead(eye[eyeIndex].blink.pin) == LOW) { // Wink!
     } else if(blink_eye[eyeIndex]) { // Wink!
       eye[eyeIndex].blink.state     = ENBLINK;
       eye[eyeIndex].blink.startTime = t;
@@ -530,9 +531,9 @@ void loop() {
 
   frame(a2_value_mapped);
 
-  blink_eye[0] = false;
-  blink_eye[1] = false;
-  force_blink=false;
+  //blink_eye[0] = false;
+  //blink_eye[1] = false;
+  //force_blink=false;
 }
 
 
